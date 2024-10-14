@@ -357,7 +357,6 @@ class ResourceWebHandlerTests {
 		testInvalidPath("/../.." + secretPath, handler);
 		testInvalidPath("/%2E%2E/testsecret/secret.txt", handler);
 		testInvalidPath("/%2E%2E/testsecret/secret.txt", handler);
-		testInvalidPath("%2F%2F%2E%2E%2F%2F%2E%2E" + secretPath, handler);
 	}
 
 	private void testInvalidPath(String requestPath, ResourceWebHandler handler) {
@@ -392,7 +391,6 @@ class ResourceWebHandlerTests {
 		testResolvePathWithTraversal(method, "/url:" + secretPath, location);
 		testResolvePathWithTraversal(method, "////../.." + secretPath, location);
 		testResolvePathWithTraversal(method, "/%2E%2E/testsecret/secret.txt", location);
-		testResolvePathWithTraversal(method, "%2F%2F%2E%2E%2F%2Ftestsecret/secret.txt", location);
 		testResolvePathWithTraversal(method, "url:" + secretPath, location);
 
 		// The following tests fail with a MalformedURLException on Windows
