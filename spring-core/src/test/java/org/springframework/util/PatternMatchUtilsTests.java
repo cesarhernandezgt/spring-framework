@@ -26,24 +26,39 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class PatternMatchUtilsTests {
 
+
+	@Test
+	void nullAndEmptyValues() {
+		assertDoesNotMatch((String) null, null);
+		assertDoesNotMatch((String) null, "");
+		assertDoesNotMatch("123", null);
+
+		assertDoesNotMatch((String[]) null, null);
+		assertDoesNotMatch((String[]) null, "");
+		assertDoesNotMatch(new String[] {}, null);
+	}
+
 	@Test
 	void trivial() {
 		assertThat(PatternMatchUtils.simpleMatch((String) null, "")).isFalse();
 		assertThat(PatternMatchUtils.simpleMatch("1", null)).isFalse();
 		doTest("*", "123", true);
 		doTest("123", "123", true);
+		testMixedCaseMatch("abC", "Abc");
 	}
 
 	@Test
 	void startsWith() {
 		doTest("get*", "getMe", true);
 		doTest("get*", "setMe", false);
+		testMixedCaseMatch("geT*", "GetMe");
 	}
 
 	@Test
 	void endsWith() {
 		doTest("*Test", "getMeTest", true);
 		doTest("*Test", "setMe", false);
+		testMixedCaseMatch("*TeSt", "getMeTesT");
 	}
 
 	@Test
@@ -53,6 +68,10 @@ class PatternMatchUtilsTests {
 		doTest("*stuff*", "stuffTest", true);
 		doTest("*stuff*", "getstuff", true);
 		doTest("*stuff*", "stuff", true);
+		testMixedCaseMatch("*stuff*", "getStuffTest");
+		testMixedCaseMatch("*stuff*", "StuffTest");
+		testMixedCaseMatch("*stuff*", "getStuff");
+		testMixedCaseMatch("*stuff*", "Stuff");
 	}
 
 	@Test
@@ -61,6 +80,8 @@ class PatternMatchUtilsTests {
 		doTest("on*Event", "onEvent", true);
 		doTest("3*3", "3", false);
 		doTest("3*3", "33", true);
+		testMixedCaseMatch("on*Event", "OnMyEvenT");
+		testMixedCaseMatch("on*Event", "OnEvenT");
 	}
 
 	@Test
@@ -101,6 +122,11 @@ class PatternMatchUtilsTests {
 
 	private void doTest(String pattern, String str, boolean shouldMatch) {
 		assertThat(PatternMatchUtils.simpleMatch(pattern, str)).isEqualTo(shouldMatch);
+	}
+
+	private void testMixedCaseMatch(String pattern, String str) {
+		assertThat(PatternMatchUtils.simpleMatch(pattern, str)).isFalse();
+		assertThat(PatternMatchUtils.simpleMatchIgnoreCase(pattern, str)).isTrue();
 	}
 
 }
