@@ -129,4 +129,14 @@ public class PatternMatchUtilsTests {
 		assertThat(PatternMatchUtils.simpleMatchIgnoreCase(pattern, str)).isTrue();
 	}
 
+	private void assertDoesNotMatch(String pattern, String str) {
+		assertThat(PatternMatchUtils.simpleMatch(pattern, str)).isFalse();
+		assertThat(PatternMatchUtils.simpleMatchIgnoreCase(pattern, str)).isFalse();
+	}
+
+	private void assertDoesNotMatch(String[] patterns, String str) {
+		assertThat(PatternMatchUtils.simpleMatch(patterns, str)).isFalse();
+		assertThat(PatternMatchUtils.simpleMatchIgnoreCase(patterns, str)).isFalse();
+	}
+
 }
