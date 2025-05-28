@@ -293,7 +293,7 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 	public void initDirectFieldAccess() {
 		Assert.state(this.bindingResult == null,
 				"DataBinder is already initialized - call initDirectFieldAccess before other configuration methods");
-		this.directFieldAccess = true;
+		this.bindingResult = createDirectFieldBindingResult();
 	}
 
 	/**
@@ -585,7 +585,7 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 		this.validators.clear();
 		this.validators.add(validator);
 	}
-		}
+
 
 	private void assertValidators(Validator... validators) {
 		Assert.notNull(validators, "Validators required");

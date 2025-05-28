@@ -28,7 +28,7 @@ public class PatternMatchUtilsTests {
 
 
 	@Test
-	void nullAndEmptyValues() {
+	public void nullAndEmptyValues() {
 		assertDoesNotMatch((String) null, null);
 		assertDoesNotMatch((String) null, "");
 		assertDoesNotMatch("123", null);
@@ -125,18 +125,18 @@ public class PatternMatchUtilsTests {
 	}
 
 	private void testMixedCaseMatch(String pattern, String str) {
-		assertThat(PatternMatchUtils.simpleMatch(pattern, str)).isFalse();
-		assertThat(PatternMatchUtils.simpleMatchIgnoreCase(pattern, str)).isTrue();
+		assertFalse(PatternMatchUtils.simpleMatch(pattern, str));
+		assertTrue(PatternMatchUtils.simpleMatchIgnoreCase(pattern, str));
 	}
 
 	private void assertDoesNotMatch(String pattern, String str) {
-		assertThat(PatternMatchUtils.simpleMatch(pattern, str)).isFalse();
-		assertThat(PatternMatchUtils.simpleMatchIgnoreCase(pattern, str)).isFalse();
+		assertFalse(PatternMatchUtils.simpleMatch(pattern, str));
+		assertFalse(PatternMatchUtils.simpleMatchIgnoreCase(pattern, str));
 	}
 
 	private void assertDoesNotMatch(String[] patterns, String str) {
-		assertThat(PatternMatchUtils.simpleMatch(patterns, str)).isFalse();
-		assertThat(PatternMatchUtils.simpleMatchIgnoreCase(patterns, str)).isFalse();
+		assertFalse(PatternMatchUtils.simpleMatch(patterns, str));
+		assertFalse(PatternMatchUtils.simpleMatchIgnoreCase(patterns, str));
 	}
 
 }

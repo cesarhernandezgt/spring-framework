@@ -16,7 +16,6 @@
 
 package org.springframework.util;
 
-import org.springframework.lang.Nullable;
 
 /**
  * Utility methods for simple pattern matching, in particular for
@@ -35,18 +34,18 @@ public abstract class PatternMatchUtils {
 	 * @param str the String to match
 	 * @return whether the String matches the given pattern
 	 */
-	public static boolean simpleMatch(@Nullable String pattern, @Nullable String str) {
+	public static boolean simpleMatch(String pattern, String str) {
 		return simpleMatch(pattern, str, false);
 	}
 
 	/**
 	 * Variant of {@link #simpleMatch(String, String)} that ignores upper/lower case.
 	 */
-	public static boolean simpleMatchIgnoreCase(@Nullable String pattern, @Nullable String str) {
+	public static boolean simpleMatchIgnoreCase(String pattern, String str) {
 		return simpleMatch(pattern, str, true);
 	}
 
-	private static boolean simpleMatch(@Nullable String pattern, @Nullable String str, boolean ignoreCase) {
+	private static boolean simpleMatch( String pattern, String str, boolean ignoreCase) {
 		if (pattern == null || str == null) {
 			return false;
 		}
@@ -109,7 +108,7 @@ public abstract class PatternMatchUtils {
 	 * @param str the String to match
 	 * @return whether the String matches any of the given patterns
 	 */
-	public static boolean simpleMatch(@Nullable String[] patterns, String str) {
+	public static boolean simpleMatch(String[] patterns, String str) {
 		if (patterns != null) {
 			for (String pattern : patterns) {
 				if (simpleMatch(pattern, str)) {
@@ -123,7 +122,7 @@ public abstract class PatternMatchUtils {
 	/**
 	 * Variant of {@link #simpleMatch(String[], String)}  that ignores upper/lower case.
 	 */
-	public static boolean simpleMatchIgnoreCase(@Nullable String[] patterns, @Nullable String str) {
+	public static boolean simpleMatchIgnoreCase(String[] patterns, String str) {
 		if (patterns != null) {
 			for (String pattern : patterns) {
 				if (simpleMatch(pattern, str, true)) {
