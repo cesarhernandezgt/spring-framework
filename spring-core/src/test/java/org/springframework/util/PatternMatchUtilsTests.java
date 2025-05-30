@@ -39,11 +39,6 @@ class PatternMatchUtilsTests {
 
 	@Test
 	void trivial() {
-		assertThat(PatternMatchUtils.simpleMatch((String) null, "")).isFalse();
-		assertThat(PatternMatchUtils.simpleMatch("1", null)).isFalse();
-		doTest("*", "123", true);
-		doTest("123", "123", true);
-        testMixedCaseMatch("abC", "Abc");
 		assertMatches("", "");
 		assertMatches("123", "123");
 		assertMatches("*", "123");
