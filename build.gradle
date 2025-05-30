@@ -147,7 +147,7 @@ configure([rootProject] + javaProjects) { project ->
 			"https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-core/2.14.1/",
 			"https://www.javadoc.io/doc/com.fasterxml.jackson.core/jackson-databind/2.14.1/",
 			"https://www.javadoc.io/doc/com.fasterxml.jackson.dataformat/jackson-dataformat-xml/2.14.1/",
-			"https://hc.apache.org/httpcomponents-client-5.4.x/current/httpclient5/apidocs/",
+			"https://hc.apache.org/httpcomponents-client-5.5.x/current/httpclient5/apidocs/",
 			"https://projectreactor.io/docs/test/release/api/",
 			"https://junit.org/junit4/javadoc/4.13.2/",
 			// TODO Uncomment link to JUnit 5 docs once we execute Gradle with Java 18+.
