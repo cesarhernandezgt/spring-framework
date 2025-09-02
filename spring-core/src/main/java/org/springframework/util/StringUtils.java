@@ -24,7 +24,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Enumeration;
-import java.util.HexFormat;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -806,7 +805,7 @@ public abstract class StringUtils {
 
 					int pos = 0;
 					while (i + 2 < length && ch == '%') {
-						bytes[pos++] = (byte) HexFormat.fromHexDigits(source, i + 1, i + 3);
+						bytes[pos++] = (byte) fromHexPair(source, i + 1);
 						i += 3;
 						if (i < length) {
 							ch = source.charAt(i);
@@ -1435,5 +1434,15 @@ public abstract class StringUtils {
 		}
 		return charSequence.toString();
 	}
+
+	private static int fromHexPair(CharSequence s, int start) {
+		int hi = Character.digit(s.charAt(start), 16);
+		int lo = Character.digit(s.charAt(start + 1), 16);
+		if (hi < 0 || lo < 0) {
+			throw new NumberFormatException();
+		}
+		return (hi << 4) | lo;
+	}
+
 
 }
