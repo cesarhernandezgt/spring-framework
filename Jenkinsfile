@@ -1,7 +1,7 @@
 pipeline {
     agent { label 'aws-T2XLarge' }
     tools {
-        jdk 'jdk-17'
+        jdk 'jdk-11'
     }
     options {
         timeout(time: 2, unit: 'HOURS')
