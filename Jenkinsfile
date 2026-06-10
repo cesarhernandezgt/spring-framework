@@ -2,9 +2,6 @@ pipeline {
     agent { label 'aws-T2XLarge' }
     tools {
         jdk 'jdk-17'
-        // Gradle tool not pinned — repo's gradle-wrapper downloads its own.
-        // If wrapper download is sandboxed, uncomment:
-        // gradle 'gradle-9.6'
     }
     options {
         timeout(time: 2, unit: 'HOURS')
@@ -23,38 +20,52 @@ pipeline {
         }
         stage('Compile CVE-affected modules') {
             steps {
-                sh '''
-                  ./gradlew --no-daemon \
-                    -Dorg.gradle.java.installations.fromEnv=JAVA_HOME \
-                    -Dorg.gradle.java.installations.auto-detect=false \
-                    -Dorg.gradle.java.installations.auto-download=false \
-                    :spring-core:compileJava \
-                    :spring-beans:compileJava \
-                    :spring-aop:compileJava \
-                    :spring-context:compileJava \
-                    :spring-tx:compileJava \
-                    :spring-expression:compileJava \
-                    :spring-jms:compileJava \
-                    :spring-web:compileJava \
-                    :spring-webmvc:compileJava\\
-                    :spring-webflux:compileJava
-                '''
+                withCredentials([usernamePassword(
+                        credentialsId: 'tt-nexus-credentials',
+                        usernameVariable: 'NEXUS_USER',
+                        passwordVariable: 'NEXUS_PASS')]) {
+                    sh '''
+                      ./gradlew --no-daemon \
+                        -PrepoUser=$NEXUS_USER \
+                        -PrepoPassword=$NEXUS_PASS \
+                        -Dorg.gradle.java.installations.fromEnv=JAVA_HOME \
+                        -Dorg.gradle.java.installations.auto-detect=false \
+                        -Dorg.gradle.java.installations.auto-download=false \
+                        :spring-core:compileJava \
+                        :spring-beans:compileJava \
+                        :spring-aop:compileJava \
+                        :spring-context:compileJava \
+                        :spring-tx:compileJava \
+                        :spring-expression:compileJava \
+                        :spring-jms:compileJava \
+                        :spring-web:compileJava \
+                        :spring-webmvc:compileJava \
+                        :spring-webflux:compileJava
+                    '''
+                }
             }
         }
         stage('Test CVE-affected modules') {
             steps {
-                sh '''
-                  ./gradlew --no-daemon \
-                    -Dorg.gradle.java.installations.fromEnv=JAVA_HOME \
-                    -Dorg.gradle.java.installations.auto-detect=false \
-                    -Dorg.gradle.java.installations.auto-download=false \
-                    :spring-core:test \
-                    :spring-expression:test \
-                    :spring-jms:test \
-                    :spring-web:test \
-                    :spring-webmvc:test\\
-                    :spring-webflux:test
-                '''
+                withCredentials([usernamePassword(
+                        credentialsId: 'tt-nexus-credentials',
+                        usernameVariable: 'NEXUS_USER',
+                        passwordVariable: 'NEXUS_PASS')]) {
+                    sh '''
+                      ./gradlew --no-daemon \
+                        -PrepoUser=$NEXUS_USER \
+                        -PrepoPassword=$NEXUS_PASS \
+                        -Dorg.gradle.java.installations.fromEnv=JAVA_HOME \
+                        -Dorg.gradle.java.installations.auto-detect=false \
+                        -Dorg.gradle.java.installations.auto-download=false \
+                        :spring-core:test \
+                        :spring-expression:test \
+                        :spring-jms:test \
+                        :spring-web:test \
+                        :spring-webmvc:test \
+                        :spring-webflux:test
+                    '''
+                }
             }
         }
     }
