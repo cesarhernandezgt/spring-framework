@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent { label 'aws-T2XLarge' }
     tools {
         jdk 'jdk-17'
         // Gradle tool not pinned — repo's gradle-wrapper downloads its own.
