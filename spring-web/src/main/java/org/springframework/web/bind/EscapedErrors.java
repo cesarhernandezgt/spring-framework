@@ -170,13 +170,12 @@ public class EscapedErrors implements Errors {
 
 	@Override
 	public List<FieldError> getFieldErrors() {
-		return this.source.getFieldErrors();
+		return escapeObjectErrors(this.source.getFieldErrors());
 	}
 
 	@Override
-	@Nullable
-	public FieldError getFieldError() {
-		return this.source.getFieldError();
+	public @Nullable FieldError getFieldError() {
+		return escapeObjectError(this.source.getFieldError());
 	}
 
 	@Override
