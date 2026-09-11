@@ -84,7 +84,7 @@ class UrlFilenameViewControllerTests {
 		MockHttpServletRequest request = requestFactory.apply("/redirect:index");
 		assertThatExceptionOfType(ResponseStatusException.class)
 				.isThrownBy(() -> controller.handleRequest(request, new MockHttpServletResponse()))
-				.satisfies(ex -> assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST));
+				.satisfies(ex -> assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST));
 	}
 
 	@PathPatternsParameterizedTest
@@ -93,7 +93,7 @@ class UrlFilenameViewControllerTests {
 		MockHttpServletRequest request = requestFactory.apply("/forward:index");
 		assertThatExceptionOfType(ResponseStatusException.class)
 				.isThrownBy(() -> controller.handleRequest(request, new MockHttpServletResponse()))
-				.satisfies(ex -> assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST));
+				.satisfies(ex -> assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST));
 	}
 
 	@PathPatternsParameterizedTest
