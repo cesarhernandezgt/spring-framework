@@ -35,6 +35,7 @@ import org.dom4j.io.SAXReader;
 import org.junit.jupiter.api.Test;
 import org.xml.sax.SAXException;
 
+import org.springframework.context.ApplicationContextException;
 import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
@@ -44,6 +45,7 @@ import org.springframework.web.testfixture.servlet.MockHttpServletResponse;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 /**
@@ -72,6 +74,30 @@ public class XsltViewTests {
 		final XsltView view = new XsltView();
 		assertThatIllegalArgumentException().isThrownBy(
 				view::afterPropertiesSet);
+	}
+
+	@Test  // CVE-2026-47884
+	public void rejectsWebInfLocation() {
+		assertThatExceptionOfType(ApplicationContextException.class).isThrownBy(() ->
+				getXsltView("/WEB-INF/secret.xsl"));
+	}
+
+	@Test  // CVE-2026-47884
+	public void rejectsMetaInfLocation() {
+		assertThatExceptionOfType(ApplicationContextException.class).isThrownBy(() ->
+				getXsltView("/META-INF/secret.xsl"));
+	}
+
+	@Test  // CVE-2026-47884
+	public void rejectsPathTraversalLocation() {
+		assertThatExceptionOfType(ApplicationContextException.class).isThrownBy(() ->
+				getXsltView("../../../../etc/passwd"));
+	}
+
+	@Test  // CVE-2026-47884
+	public void rejectsUrlLocation() {
+		assertThatExceptionOfType(ApplicationContextException.class).isThrownBy(() ->
+				getXsltView("http://evil.example/stylesheet.xsl"));
 	}
 
 	@Test

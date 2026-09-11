@@ -49,6 +49,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.util.ResourceUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.util.xml.SimpleTransformErrorListener;
 import org.springframework.util.xml.TransformerUtils;
@@ -462,17 +463,43 @@ public class XsltView extends AbstractUrlBasedView {
 	protected Source getStylesheetSource() {
 		String url = getUrl();
 		Assert.state(url != null, "'url' not set");
-
 		if (logger.isDebugEnabled()) {
 			logger.debug("Applying stylesheet [" + url + "]");
 		}
+		String location = normalizeInputPath(url);
+		if (shouldIgnoreInputPath(location)) {
+			throw new ApplicationContextException("Invalid XSLT stylesheet location '" + url + "'");
+		}
 		try {
-			Resource resource = obtainApplicationContext().getResource(url);
+			Resource resource = obtainApplicationContext().getResource(location);
 			return new StreamSource(resource.getInputStream(), resource.getURI().toASCIIString());
 		}
 		catch (IOException ex) {
 			throw new ApplicationContextException("Can't load XSLT stylesheet from '" + url + "'", ex);
 		}
+	}
+
+	/**
+	 * Normalize the given stylesheet location by collapsing {@code ../}/{@code ./}
+	 * segments, so that {@link #shouldIgnoreInputPath} can reliably detect an
+	 * attempt to escape the intended resource root.
+	 * @since 5.3.39-TT
+	 */
+	private static String normalizeInputPath(String path) {
+		return StringUtils.cleanPath(path);
+	}
+
+	/**
+	 * Reject stylesheet locations that could be used to read protected application
+	 * resources ({@code WEB-INF}/{@code META-INF}), escape the intended resource
+	 * root ({@code ../}), or trigger SSRF by resolving to an arbitrary external URL
+	 * &mdash; the exact vector this CVE (an unspecified view name resolving to an
+	 * attacker-influenced {@code XsltView} location) exploits.
+	 * @since 5.3.39-TT
+	 */
+	private static boolean shouldIgnoreInputPath(String path) {
+		return (path.contains("WEB-INF") || path.contains("META-INF") || path.contains("../") ||
+				ResourceUtils.isUrl(path) || path.startsWith("url:"));
 	}
 
 	/**
