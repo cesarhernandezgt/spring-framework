@@ -284,7 +284,12 @@ public enum SpelMessage {
 
 	/** @since 5.2.24 */
 	VARIABLE_ASSIGNMENT_NOT_SUPPORTED(Kind.ERROR, 1080,
-			"Assignment to variable ''{0}'' is not supported");
+			"Assignment to variable ''{0}'' is not supported"),
+
+	/** @since 5.3.39-TT */
+	MAX_BIG_POWER_RESULT_EXCEEDED(Kind.ERROR, 1081,
+			"BigDecimal/BigInteger power operation with base bit length ''{0}'' and exponent ''{1}'' " +
+			"would produce a result exceeding the configured maximum of ''{2}'' bits");
 
 
 	private final Kind kind;

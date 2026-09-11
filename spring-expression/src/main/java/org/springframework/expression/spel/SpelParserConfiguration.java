@@ -18,6 +18,8 @@ package org.springframework.expression.spel;
 
 import org.springframework.core.SpringProperties;
 import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 /**
  * Configuration object for the SpEL expression parser.
@@ -36,8 +38,25 @@ public class SpelParserConfiguration {
 	 */
 	private static final int DEFAULT_MAX_EXPRESSION_LENGTH = 10_000;
 
+	/**
+	 * Default maximum number of bits permitted in the result of a {@link java.math.BigDecimal}
+	 * or {@link java.math.BigInteger} power operation within a SpEL expression.
+	 * <p>Approximately equivalent to a decimal number with 300,000 digits.
+	 * @since 5.3.39-TT
+	 */
+	public static final int DEFAULT_MAX_BIG_POWER_BITS = 1_000_000;
+
 	/** System property to configure the default compiler mode for SpEL expression parsers: {@value}. */
 	public static final String SPRING_EXPRESSION_COMPILER_MODE_PROPERTY_NAME = "spring.expression.compiler.mode";
+
+	/**
+	 * System property to configure the default maximum number of bits permitted in the
+	 * result of a {@link java.math.BigDecimal} or {@link java.math.BigInteger} power
+	 * operation within a SpEL expression: {@value}.
+	 * @since 5.3.39-TT
+	 * @see #DEFAULT_MAX_BIG_POWER_BITS
+	 */
+	public static final String SPRING_EXPRESSION_MAX_BIG_POWER_BITS_PROPERTY_NAME = "spring.expression.maxBigPowerBits";
 
 
 	private static final SpelCompilerMode defaultCompilerMode;
@@ -61,6 +80,8 @@ public class SpelParserConfiguration {
 	private final int maximumAutoGrowSize;
 
 	private final int maximumExpressionLength;
+
+	private final int maximumBigPowerBits;
 
 
 	/**
@@ -128,12 +149,38 @@ public class SpelParserConfiguration {
 	public SpelParserConfiguration(@Nullable SpelCompilerMode compilerMode, @Nullable ClassLoader compilerClassLoader,
 			boolean autoGrowNullReferences, boolean autoGrowCollections, int maximumAutoGrowSize, int maximumExpressionLength) {
 
+		this(compilerMode, compilerClassLoader, autoGrowNullReferences, autoGrowCollections,
+				maximumAutoGrowSize, maximumExpressionLength, retrieveMaxBigPowerBits());
+	}
+
+	/**
+	 * Create a new {@code SpelParserConfiguration} instance.
+	 * @param compilerMode the compiler mode that parsers using this configuration object should use
+	 * @param compilerClassLoader the ClassLoader to use as the basis for expression compilation
+	 * @param autoGrowNullReferences if null references should automatically grow
+	 * @param autoGrowCollections if collections should automatically grow
+	 * @param maximumAutoGrowSize the maximum size that a collection can auto grow
+	 * @param maximumExpressionLength the maximum length of a SpEL expression;
+	 * must be a positive number
+	 * @param maximumBigPowerBits the maximum number of bits permitted in the
+	 * result of a {@link java.math.BigDecimal} or {@link java.math.BigInteger} power
+	 * operation; must be a positive number; use {@link Integer#MAX_VALUE} for no limit
+	 * @since 5.3.39-TT
+	 */
+	public SpelParserConfiguration(@Nullable SpelCompilerMode compilerMode, @Nullable ClassLoader compilerClassLoader,
+			boolean autoGrowNullReferences, boolean autoGrowCollections, int maximumAutoGrowSize,
+			int maximumExpressionLength, int maximumBigPowerBits) {
+
+		Assert.isTrue(maximumExpressionLength > 0, "'maximumExpressionLength' must be a positive number");
+		Assert.isTrue(maximumBigPowerBits > 0, "'maximumBigPowerBits' must be a positive number");
+
 		this.compilerMode = (compilerMode != null ? compilerMode : defaultCompilerMode);
 		this.compilerClassLoader = compilerClassLoader;
 		this.autoGrowNullReferences = autoGrowNullReferences;
 		this.autoGrowCollections = autoGrowCollections;
 		this.maximumAutoGrowSize = maximumAutoGrowSize;
 		this.maximumExpressionLength = maximumExpressionLength;
+		this.maximumBigPowerBits = maximumBigPowerBits;
 	}
 
 
@@ -179,6 +226,33 @@ public class SpelParserConfiguration {
 	 */
 	public int getMaximumExpressionLength() {
 		return this.maximumExpressionLength;
+	}
+
+	/**
+	 * Return the maximum number of bits permitted in the result of a
+	 * {@link java.math.BigDecimal} or {@link java.math.BigInteger} power operation.
+	 * @since 5.3.39-TT
+	 */
+	public int getMaximumBigPowerBits() {
+		return this.maximumBigPowerBits;
+	}
+
+
+	private static int retrieveMaxBigPowerBits() {
+		String value = SpringProperties.getProperty(SPRING_EXPRESSION_MAX_BIG_POWER_BITS_PROPERTY_NAME);
+		if (!StringUtils.hasText(value)) {
+			return DEFAULT_MAX_BIG_POWER_BITS;
+		}
+		try {
+			int maxBits = Integer.parseInt(value.trim());
+			Assert.isTrue(maxBits > 0, "Value [" + maxBits + "] for system property [" +
+					SPRING_EXPRESSION_MAX_BIG_POWER_BITS_PROPERTY_NAME + "] must be positive");
+			return maxBits;
+		}
+		catch (NumberFormatException ex) {
+			throw new IllegalArgumentException("Failed to parse value for system property [" +
+					SPRING_EXPRESSION_MAX_BIG_POWER_BITS_PROPERTY_NAME + "]: " + ex.getMessage(), ex);
+		}
 	}
 
 }

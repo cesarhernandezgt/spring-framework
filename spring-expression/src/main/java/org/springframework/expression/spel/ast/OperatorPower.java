@@ -23,6 +23,8 @@ import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Operation;
 import org.springframework.expression.TypedValue;
 import org.springframework.expression.spel.ExpressionState;
+import org.springframework.expression.spel.SpelEvaluationException;
+import org.springframework.expression.spel.SpelMessage;
 import org.springframework.util.NumberUtils;
 
 /**
@@ -53,11 +55,15 @@ public class OperatorPower extends Operator {
 
 			if (leftNumber instanceof BigDecimal) {
 				BigDecimal leftBigDecimal = NumberUtils.convertNumberToTargetClass(leftNumber, BigDecimal.class);
-				return new TypedValue(leftBigDecimal.pow(rightNumber.intValue()));
+				int exponent = rightNumber.intValue();
+				checkBigNumberPowerBits(state, leftBigDecimal.unscaledValue().bitLength(), exponent);
+				return new TypedValue(leftBigDecimal.pow(exponent));
 			}
 			else if (leftNumber instanceof BigInteger) {
 				BigInteger leftBigInteger = NumberUtils.convertNumberToTargetClass(leftNumber, BigInteger.class);
-				return new TypedValue(leftBigInteger.pow(rightNumber.intValue()));
+				int exponent = rightNumber.intValue();
+				checkBigNumberPowerBits(state, leftBigInteger.bitLength(), exponent);
+				return new TypedValue(leftBigInteger.pow(exponent));
 			}
 			else if (leftNumber instanceof Double || rightNumber instanceof Double) {
 				return new TypedValue(Math.pow(leftNumber.doubleValue(), rightNumber.doubleValue()));
@@ -76,6 +82,15 @@ public class OperatorPower extends Operator {
 		}
 
 		return state.operate(Operation.POWER, leftOperand, rightOperand);
+	}
+
+	private void checkBigNumberPowerBits(ExpressionState state, int baseBitLength, int exponent) {
+		int maxBigPowerBits = state.getConfiguration().getMaximumBigPowerBits();
+		long estimatedBigPowerBits = (long) baseBitLength * exponent;
+		if (estimatedBigPowerBits > maxBigPowerBits) {
+			throw new SpelEvaluationException(getStartPosition(), SpelMessage.MAX_BIG_POWER_RESULT_EXCEEDED,
+					baseBitLength, exponent, maxBigPowerBits);
+		}
 	}
 
 }
