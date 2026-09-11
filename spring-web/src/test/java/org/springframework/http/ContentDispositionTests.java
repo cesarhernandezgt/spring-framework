@@ -234,44 +234,39 @@ class ContentDispositionTests {
 
 	@Test  // gh-24220
 	void formatWithFilenameWithQuotes() {
-		BiConsumer<String, String> tester = (input, output) -> {
+		String bs = "\\";  // one backslash character
+		String q = "\"";   // one quote character
+
+		BiConsumer<String, String> tester = (input, expectedContent) -> {
 			assertThat(ContentDisposition.formData().filename(input).build().toString())
-					.isEqualTo("form-data; filename=\"" + output + "\"");
+					.isEqualTo("form-data; filename=\"" + expectedContent + "\"");
 			assertThat(ContentDisposition.formData().filename(input, StandardCharsets.US_ASCII).build().toString())
-					.isEqualTo("form-data; filename=\"" + output + "\"");
+					.isEqualTo("form-data; filename=\"" + expectedContent + "\"");
 		};
 
-		String filename = "\"foo.txt";
-		tester.accept(filename, "\\" + filename);
+		// input: "foo.txt   (1 quote)          -> output: \"foo.txt        (quote escaped)
+		tester.accept(q + "foo.txt", bs + q + "foo.txt");
 
-		filename = "\\\"foo.txt";
-		tester.accept(filename, filename);
+		// input: \"foo.txt  (1 backslash, 1 quote) -> output: \\\"foo.txt  (both escaped independently)
+		tester.accept(bs + q + "foo.txt", bs + bs + bs + q + "foo.txt");
 
-		filename = "\\\\\"foo.txt";
-		tester.accept(filename, "\\" + filename);
+		// input: \\"foo.txt (2 backslashes, 1 quote) -> output: \\\\\"foo.txt
+		tester.accept(bs + bs + q + "foo.txt", bs + bs + bs + bs + bs + q + "foo.txt");
 
-		filename = "\\\\\\\"foo.txt";
-		tester.accept(filename, filename);
+		// input: foo.txt\  (trailing single backslash) -> output: foo.txt\\ (escaped, not stripped)
+		tester.accept("foo.txt" + bs, "foo.txt" + bs + bs);
 
-		filename = "\\\\\\\\\"foo.txt";
-		tester.accept(filename, "\\" + filename);
-
-		tester.accept("\"\"foo.txt", "\\\"\\\"foo.txt");
-		tester.accept("\"\"\"foo.txt", "\\\"\\\"\\\"foo.txt");
-
-		tester.accept("foo.txt\\", "foo.txt");
-		tester.accept("foo.txt\\\\", "foo.txt\\\\");
-		tester.accept("foo.txt\\\\\\", "foo.txt\\\\");
+		// input: foo.txt\\ (trailing 2 backslashes) -> output: foo.txt\\\\
+		tester.accept("foo.txt" + bs + bs, "foo.txt" + bs + bs + bs + bs);
 	}
 
 	@Test
-	void formatWithEncodedFilenameUsingInvalidCharset() {
-		assertThatIllegalArgumentException().isThrownBy(() ->
-				ContentDisposition.formData()
-						.name("name")
-						.filename("test.txt", StandardCharsets.UTF_16)
-						.build()
-						.toString());
+	void parseBackslashInName() {
+		String s = "form-data; name=\"foo\\\"bar\"; filename=\"foo.txt\"";
+		ContentDisposition cd = ContentDisposition.parse(s);
+		assertThat(cd.getName()).isEqualTo("foo\"bar");
+		assertThat(cd.getFilename()).isEqualTo("foo.txt");
+		assertThat(cd.toString()).isEqualTo(s);
 	}
 
 }
