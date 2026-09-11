@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -5646,6 +5647,39 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 			field.setAccessible(true);
 			Object object = field.get(expression);
 			assertThat(object).isNotNull();
+		}
+		catch (Exception ex) {
+			throw new AssertionError(ex.getMessage(), ex);
+		}
+	}
+
+	/**
+	 * @since 5.3.39-TT
+	 */
+	public static void assertIsNotCompiled(Expression expression) {
+		try {
+			Field field = SpelExpression.class.getDeclaredField("compiledAst");
+			field.setAccessible(true);
+			Object object = field.get(expression);
+			assertThat(object).isNull();
+		}
+		catch (Exception ex) {
+			throw new AssertionError(ex.getMessage(), ex);
+		}
+	}
+
+	/**
+	 * Return the current interpreted evaluation count for the given expression.
+	 * <p>This counter is incremented exclusively by the interpreted evaluation path,
+	 * so it serves as a reliable witness for distinguishing interpreted from compiled
+	 * evaluations in tests.
+	 * @since 5.3.39-TT
+	 */
+	public static int getInterpretedCount(Expression expression) {
+		try {
+			Field field = SpelExpression.class.getDeclaredField("interpretedCount");
+			field.setAccessible(true);
+			return ((AtomicInteger) field.get(expression)).get();
 		}
 		catch (Exception ex) {
 			throw new AssertionError(ex.getMessage(), ex);
