@@ -93,6 +93,15 @@ public class XmlEventDecoder extends AbstractDecoder<XMLEvent> {
 
 	private int maxInMemorySize = 256 * 1024;
 
+	/**
+	 * Hint key for a {@link ReceivedByteTracker} instance that callers can use
+	 * to track the number of received bytes, and to enforce the same
+	 * {@code maxInMemorySize} limit per top-level XML element in a downstream
+	 * consumer such as {@code Jaxb2XmlDecoder}.
+	 * @since 5.1.11
+	 */
+	public static final String BYTE_TRACKER_HINT = XmlEventDecoder.class.getName() + ".byteTracker";
+
 
 	public XmlEventDecoder() {
 		super(MimeTypeUtils.APPLICATION_XML, MimeTypeUtils.TEXT_XML, new MediaType("application", "*+xml"));
@@ -127,7 +136,12 @@ public class XmlEventDecoder extends AbstractDecoder<XMLEvent> {
 			@Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
 
 		if (this.useAalto) {
-			AaltoDataBufferToXmlEvent mapper = new AaltoDataBufferToXmlEvent(this.maxInMemorySize);
+			ReceivedByteTracker byteTracker = (hints != null ?
+					(ReceivedByteTracker) hints.get(BYTE_TRACKER_HINT) : null);
+			if (byteTracker == null) {
+				byteTracker = new ReceivedByteTracker(this.maxInMemorySize);
+			}
+			AaltoDataBufferToXmlEvent mapper = new AaltoDataBufferToXmlEvent(byteTracker);
 			return Flux.from(input)
 					.flatMapIterable(mapper)
 					.doFinally(signalType -> mapper.endOfInput());
@@ -166,22 +180,20 @@ public class XmlEventDecoder extends AbstractDecoder<XMLEvent> {
 
 		private final XMLEventAllocator eventAllocator = EventAllocatorImpl.getDefaultInstance();
 
-		private final int maxInMemorySize;
-
-		private int byteCount;
+		private final ReceivedByteTracker byteTracker;
 
 		private int elementDepth;
 
 
-		public AaltoDataBufferToXmlEvent(int maxInMemorySize) {
-			this.maxInMemorySize = maxInMemorySize;
+		public AaltoDataBufferToXmlEvent(ReceivedByteTracker byteTracker) {
+			this.byteTracker = byteTracker;
 		}
 
 
 		@Override
 		public List<? extends XMLEvent> apply(DataBuffer dataBuffer) {
 			try {
-				increaseByteCount(dataBuffer);
+				this.byteTracker.incrementByteCount(dataBuffer);
 				this.streamReader.getInputFeeder().feedInput(dataBuffer.asByteBuffer());
 				List<XMLEvent> events = new ArrayList<>();
 				while (true) {
@@ -198,9 +210,6 @@ public class XmlEventDecoder extends AbstractDecoder<XMLEvent> {
 						checkDepthAndResetByteCount(event);
 					}
 				}
-				if (this.maxInMemorySize > 0 && this.byteCount > this.maxInMemorySize) {
-					raiseLimitException();
-				}
 				return events;
 			}
 			catch (XMLStreamException ex) {
@@ -211,33 +220,19 @@ public class XmlEventDecoder extends AbstractDecoder<XMLEvent> {
 			}
 		}
 
-		private void increaseByteCount(DataBuffer dataBuffer) {
-			if (this.maxInMemorySize > 0) {
-				if (dataBuffer.readableByteCount() > Integer.MAX_VALUE - this.byteCount) {
-					raiseLimitException();
-				}
-				else {
-					this.byteCount += dataBuffer.readableByteCount();
-				}
-			}
-		}
-
 		private void checkDepthAndResetByteCount(XMLEvent event) {
-			if (this.maxInMemorySize > 0) {
-				if (event.isStartElement()) {
-					this.byteCount = this.elementDepth == 1 ? 0 : this.byteCount;
-					this.elementDepth++;
+			if (event.isStartElement()) {
+				if (this.elementDepth == 1) {
+					this.byteTracker.reset();
 				}
-				else if (event.isEndElement()) {
-					this.elementDepth--;
-					this.byteCount = this.elementDepth == 1 ? 0 : this.byteCount;
+				this.elementDepth++;
+			}
+			else if (event.isEndElement()) {
+				this.elementDepth--;
+				if (this.elementDepth == 1) {
+					this.byteTracker.reset();
 				}
 			}
-		}
-
-		private void raiseLimitException() {
-			throw new DataBufferLimitException(
-					"Exceeded limit on max bytes per XML top-level node: " + this.maxInMemorySize);
 		}
 
 		public void endOfInput() {
@@ -246,5 +241,46 @@ public class XmlEventDecoder extends AbstractDecoder<XMLEvent> {
 	}
 
 
+	/**
+	 * Tracks the number of bytes received during Aalto XML async parsing, shared
+	 * between {@link XmlEventDecoder} and downstream consumers (such as
+	 * {@code Jaxb2XmlDecoder}) that buffer emitted events at a higher level and
+	 * need to enforce the same {@code maxInMemorySize} limit per top-level XML
+	 * element.
+	 * @since 5.1.11
+	 */
+	public static class ReceivedByteTracker {
+
+		private final int maxInMemorySize;
+
+		private int byteCount;
+
+		public ReceivedByteTracker(int maxInMemorySize) {
+			this.maxInMemorySize = maxInMemorySize;
+		}
+
+		public int getMaxInMemorySize() {
+			return this.maxInMemorySize;
+		}
+
+		public boolean isMaxInMemorySizeExceeded() {
+			return (this.maxInMemorySize > 0 && this.byteCount > this.maxInMemorySize);
+		}
+
+		public void reset() {
+			this.byteCount = 0;
+		}
+
+		private void incrementByteCount(DataBuffer buffer) {
+			if (this.maxInMemorySize > 0) {
+				if (buffer.readableByteCount() > Integer.MAX_VALUE - this.byteCount) {
+					this.byteCount = Integer.MAX_VALUE;
+				}
+				else {
+					this.byteCount += buffer.readableByteCount();
+				}
+			}
+		}
+	}
 
 }

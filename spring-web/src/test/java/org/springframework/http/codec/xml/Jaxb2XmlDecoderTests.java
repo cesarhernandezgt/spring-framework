@@ -33,6 +33,7 @@ import reactor.test.StepVerifier;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferLimitException;
 import org.springframework.core.testfixture.io.buffer.AbstractLeakCheckingTests;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.xml.jaxb.XmlRootElement;
@@ -95,7 +96,8 @@ public class Jaxb2XmlDecoderTests extends AbstractLeakCheckingTests {
 	@Test
 	public void splitOneBranches() {
 		Flux<XMLEvent> xmlEvents = this.xmlEventDecoder.decode(toDataBufferMono(POJO_ROOT), null, null, HINTS);
-		Flux<List<XMLEvent>> result = this.decoder.split(xmlEvents, new QName("pojo"));
+		Flux<List<XMLEvent>> result = this.decoder.split(xmlEvents, new QName("pojo"),
+				new XmlEventDecoder.ReceivedByteTracker(-1));
 
 		StepVerifier.create(result)
 				.consumeNextWith(events -> {
@@ -116,7 +118,8 @@ public class Jaxb2XmlDecoderTests extends AbstractLeakCheckingTests {
 	@Test
 	public void splitMultipleBranches() {
 		Flux<XMLEvent> xmlEvents = this.xmlEventDecoder.decode(toDataBufferMono(POJO_CHILD), null, null, HINTS);
-		Flux<List<XMLEvent>> result = this.decoder.split(xmlEvents, new QName("pojo"));
+		Flux<List<XMLEvent>> result = this.decoder.split(xmlEvents, new QName("pojo"),
+				new XmlEventDecoder.ReceivedByteTracker(-1));
 
 
 		StepVerifier.create(result)
@@ -205,6 +208,29 @@ public class Jaxb2XmlDecoderTests extends AbstractLeakCheckingTests {
 				.expectNext(new TypePojo("foofoo", "barbar"))
 				.expectComplete()
 				.verify();
+	}
+
+	@Test
+	public void decodeSingleXmlRootElementExceedingLimit() {
+		Jaxb2XmlDecoder limitedDecoder = new Jaxb2XmlDecoder();
+		limitedDecoder.setMaxInMemorySize(6);
+
+		Flux<String> source = Flux.just(
+				"<pojo>", "<foo>", "foofoo", "</foo>", "<bar>", "barbarbar", "</bar>", "</pojo>");
+
+		Flux<Object> output = limitedDecoder.decode(source.map(this::toDataBuffer),
+				ResolvableType.forClass(Pojo.class), null, HINTS);
+
+		StepVerifier.create(output)
+				.expectError(DataBufferLimitException.class)
+				.verify();
+	}
+
+	private DataBuffer toDataBuffer(String value) {
+		byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+		DataBuffer buffer = this.bufferFactory.allocateBuffer(bytes.length);
+		buffer.write(bytes);
+		return buffer;
 	}
 
 	@Test
